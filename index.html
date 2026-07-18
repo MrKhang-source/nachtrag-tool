@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nachtrags-Tool — Nachtrag &amp; Kundenfreigabe</title>
+<style>
+  :root{
+    --primary:#2A2E35; --accent:#E2641E; --tint:#FBEDE3; --tintText:#8A3D12;
+    --text:#1F2328; --muted:#6B7280; --rule:#E7E3DE; --bg:#F6F4F1; --ok:#137A4B; --bad:#B42318;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Calibri,system-ui,Arial,sans-serif;color:var(--text);background:var(--bg);line-height:1.5}
+  .band{background:var(--primary);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--accent)}
+  .band .chip{width:32px;height:32px;border-radius:8px;background:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-weight:600}
+  .band .b-left{display:flex;align-items:center;gap:11px}
+  .band .b-sub{color:#C9CCD1;font-size:12px}
+  .wrap{max-width:860px;margin:0 auto;padding:22px 18px 60px}
+  .card{background:#fff;border:1px solid var(--rule);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+  h1{font-size:22px;color:var(--primary);margin:.2rem 0 1rem}
+  h2{font-size:15px;color:var(--primary);margin:0 0 12px;padding-left:10px;border-left:4px solid var(--accent)}
+  label{display:block;font-size:12px;color:var(--muted);margin:0 0 4px}
+  input,textarea,select{width:100%;font:inherit;color:var(--text);padding:8px 10px;border:1px solid var(--rule);border-radius:8px;background:#fff}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--tint)}
+  textarea{min-height:64px;resize:vertical}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:640px){
+    .g2,.g3{grid-template-columns:1fr}
+    .wrap{padding:16px 12px 50px}
+    .card{padding:14px 14px;overflow-x:auto}
+    .band{padding:12px 14px}
+    h1{font-size:20px}
+    .summary{grid-template-columns:1fr 1fr}
+  }
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;background:var(--tint);color:var(--tintText);font-weight:600;padding:8px 10px;font-size:12px}
+  td{padding:6px 8px;border-bottom:1px solid #F2EEE9;vertical-align:middle}
+  td input{padding:6px 8px}
+  .num{text-align:right}
+  .btn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-weight:500;cursor:pointer;border-radius:8px;padding:9px 15px;border:1px solid var(--rule);background:#fff;color:var(--text)}
+  .btn:hover{background:var(--tint)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{filter:brightness(.94)}
+  .btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+  .btn.bad{background:#fff;border-color:var(--bad);color:var(--bad)}
+  .btn.sm{padding:5px 10px;font-size:13px}
+  .row-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{background:var(--tint);border-radius:10px;padding:12px 14px}
+  .stat .k{font-size:12px;color:var(--muted)}
+  .stat .v{font-size:22px;font-weight:600;color:var(--primary)}
+  .hint{font-size:12px;color:var(--muted);margin-top:8px}
+  .linkbox{display:flex;gap:8px;margin-top:10px}
+  .linkbox input{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  .kv{font-size:14px;margin:4px 0}.kv b{color:var(--primary)}
+  .pill{display:inline-block;background:var(--tint);color:var(--tintText);font-size:12px;padding:3px 10px;border-radius:20px;margin:2px 4px 2px 0}
+  .banner{background:var(--tint);border:1px solid #F0CDB4;border-radius:10px;padding:12px 16px;margin-bottom:18px;color:var(--tintText)}
+  .fp{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:var(--muted)}
+  .decision{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .hidden{display:none}
+  .muted{color:var(--muted)}
+  .read p{margin:.3rem 0}
+  .conf{border:1px solid var(--ok);background:#F0FAF4;border-radius:10px;padding:16px 18px}
+  .conf.bad{border-color:var(--bad);background:#FEF3F2}
+</style>
+</head>
+<body>
+<div class="band">
+  <div class="b-left">
+    <span class="chip" id="brandChip">N</span>
+    <div>
+      <div id="brandName" style="font-weight:600">Nachtrags-Tool</div>
+      <div class="b-sub" id="brandSub">Nachtrag &amp; Kundenfreigabe</div>
+    </div>
+  </div>
+  <div class="b-sub" id="modeLabel"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ===================== BUILDER ===================== -->
+  <div id="builder" class="hidden">
+    <h1>Nachtrag erstellen</h1>
+
+    <div class="card">
+      <h2>Ihre Angaben</h2>
+      <div class="grid g3">
+        <div><label>Betrieb</label><input id="f_agency" placeholder="Ihr Betrieb"></div>
+        <div><label>Ihre E-Mail (für Freigaben)</label><input id="f_agencyEmail" type="email" placeholder="info@betrieb.de"></div>
+        <div><label>Währung</label><input id="f_currency" value="€" maxlength="3"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Nachtrag</h2>
+      <div class="grid g3">
+        <div><label>Projekt / Bauvorhaben</label><input id="f_project" placeholder="Bad-Sanierung Müller"></div>
+        <div><label>Kunde / Bauherr</label><input id="f_client" placeholder="Familie Müller"></div>
+        <div><label>Nachtrag-Nr.</label><input id="f_crNo" value="N-001"></div>
+        <div><label>Erstellt von</label><input id="f_by" placeholder="Name"></div>
+        <div><label>Datum</label><input id="f_date" type="date"></div>
+        <div><label>Gültig bis</label><input id="f_valid" type="date"></div>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <div><label>Was wird zusätzlich ausgeführt</label><textarea id="f_desc" placeholder="Zusätzliche / geänderte Leistung beschreiben"></textarea></div>
+        <div><label>Grund / Auslöser</label><textarea id="f_reason" placeholder="Zusätzlicher Kundenwunsch, unvorhergesehener Zustand, Mengenmehrung…"></textarea></div>
+        <div><label>Einordnung</label>
+          <select id="f_class">
+            <option>Zusätzliche Leistung (neu)</option>
+            <option>Änderung der beauftragten Leistung</option>
+            <option>Mengenmehrung</option>
+            <option>Regiearbeit (nach Aufwand)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Arbeitsstunden (Regie) — automatisch berechnet</h2>
+      <table>
+        <thead><tr><th>Tätigkeit</th><th>Mitarbeiter</th><th class="num">Stunden</th><th class="num">Satz</th><th class="num">Kosten</th><th></th></tr></thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+      <div class="row-actions"><button class="btn sm" id="addItem">+ Tätigkeit hinzufügen</button></div>
+
+      <h2 style="margin-top:18px">Material / Sonstiges (optional)</h2>
+      <table>
+        <thead><tr><th>Bezeichnung</th><th class="num">Betrag</th><th></th></tr></thead>
+        <tbody id="costsBody"></tbody>
+      </table>
+      <div class="row-actions"><button class="btn sm" id="addCost">+ Position hinzufügen</button></div>
+    </div>
+
+    <div class="card">
+      <h2>Terminauswirkung</h2>
+      <div class="grid g3">
+        <div><label>Zusätzliche Tage</label><input id="f_days" type="number" min="0" value="0"></div>
+        <div><label>Neuer Fertigstellungstermin</label><input id="f_newend" type="date"></div>
+        <div><label>Notiz</label><input id="f_tnotes" placeholder="Verschiebt Folgegewerk…"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Zusammenfassung</h2>
+      <div class="summary">
+        <div class="stat"><div class="k">Arbeit</div><div class="v" id="s_effort">€0</div></div>
+        <div class="stat"><div class="k">Material / Sonstiges</div><div class="v" id="s_other">€0</div></div>
+        <div class="stat"><div class="k">Gesamtauswirkung</div><div class="v" id="s_total">€0</div></div>
+        <div class="stat"><div class="k">Termin</div><div class="v" id="s_days">+0 Tage</div></div>
+      </div>
+      <p class="hint">Dokument-Fingerprint: <span class="fp" id="s_fp">—</span> — erscheint auf der Quittung des Kunden, damit Sie belegen können, was genau freigegeben wurde.</p>
+    </div>
+
+    <div class="card">
+      <h2>Zur Freigabe senden</h2>
+      <div class="row-actions">
+        <button class="btn primary" id="genLink"><span>Freigabe-Link erzeugen</span></button>
+        <button class="btn" id="dlPdf">Nachtrag als PDF</button>
+        <button class="btn" id="copyEmail">Als E-Mail kopieren</button>
+        <button class="btn" id="resetAll">Neu</button>
+      </div>
+      <div id="linkOut" class="hidden">
+        <div class="linkbox"><input id="linkField" readonly><button class="btn sm" id="copyLink">Kopieren</button></div>
+        <p class="hint">Diesen Link an den Kunden senden. Er öffnet ihn, sieht den fertig gerechneten Nachtrag und gibt frei oder lehnt ab — ohne Konto, ohne Server, nichts wird gespeichert. Die Daten leben nur im Link.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== APPROVAL ===================== -->
+  <div id="approval" class="hidden">
+    <div class="banner"><b>Sie haben einen Nachtrag zur Freigabe erhalten.</b> Bitte prüfen Sie die Angaben und geben Sie frei oder lehnen Sie ab.</div>
+    <div class="card read" id="roView"></div>
+
+    <div class="card" id="decideCard">
+      <h2>Ihre Entscheidung</h2>
+      <div class="grid g2">
+        <div><label>Ihr Name (Freigabeberechtigter)</label><input id="a_name" placeholder="Vor- und Nachname"></div>
+        <div><label>Notiz / Auflagen (optional)</label><input id="a_note" placeholder="Optional"></div>
+      </div>
+      <div class="decision">
+        <button class="btn ok" data-d="Freigegeben">Freigeben</button>
+        <button class="btn" data-d="Freigegeben mit Auflagen">Mit Auflagen freigeben</button>
+        <button class="btn bad" data-d="Abgelehnt">Ablehnen</button>
+        <button class="btn" data-d="Rückfrage gestellt">Rückfrage</button>
+      </div>
+      <p class="hint">Nach der Entscheidung erhalten Sie eine zeitgestempelte PDF-Quittung und eine vorausgefüllte Bestätigungs-Mail an den Betrieb. Das Absenden dieser Mail vervollständigt den Nachweis.</p>
+    </div>
+
+    <div id="confCard" class="card hidden"></div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ---------- theme config ---------- */
+const CFG = { brand:"Nachtrags-Tool", sub:"Nachtrag & Kundenfreigabe", chip:"N" };
+document.getElementById('brandName').textContent = CFG.brand;
+document.getElementById('brandSub').textContent = CFG.sub;
+document.getElementById('brandChip').textContent = CFG.chip;
+
+/* ---------- base64url + utf8 helpers ---------- */
+function b64urlEncode(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlDecode(s){
+  s = s.replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length % 4) s += '=';
+  const bin = atob(s);
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+/* ---------- non-crypto fingerprint (Versions-Check, keine Signatur) ---------- */
+function fingerprint(str){
+  let h1 = 0x811c9dc5, h2 = 0x1000193;
+  for(let i=0;i<str.length;i++){ const c = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 + c, 0x01000193) >>> 0; }
+  return (h1.toString(16).padStart(8,'0') + h2.toString(16).padStart(8,'0')).slice(0,12);
+}
+const money = (n, cur) => cur + (Math.round(n*100)/100).toLocaleString('de-DE',{minimumFractionDigits:0, maximumFractionDigits:2});
+const esc = s => (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* ---------- model ---------- */
+let model = blank();
+function blank(){
+  return { v:1, agency:'', agencyEmail:'', currency:'€', project:'', client:'', crNo:'N-001',
+    by:'', date:today(), valid:'', desc:'', reason:'', cls:'Zusätzliche Leistung (neu)',
+    items:[{task:'',role:'',hours:0,rate:0}], costs:[], days:0, newend:'', tnotes:'' };
+}
+function today(){ return new Date().toISOString().slice(0,10); }
+
+/* ---------- totals ---------- */
+function totals(m){
+  const effort = m.items.reduce((s,i)=> s + (Number(i.hours)||0)*(Number(i.rate)||0), 0);
+  const other = m.costs.reduce((s,c)=> s + (Number(c.amount)||0), 0);
+  return { effort, other, total: effort+other };
+}
+
+/* ============================================================ BUILDER */
+const $ = id => document.getElementById(id);
+function bindBuilder(){
+  const map = {f_agency:'agency',f_agencyEmail:'agencyEmail',f_currency:'currency',f_project:'project',
+    f_client:'client',f_crNo:'crNo',f_by:'by',f_date:'date',f_valid:'valid',f_desc:'desc',
+    f_reason:'reason',f_class:'cls',f_days:'days',f_newend:'newend',f_tnotes:'tnotes'};
+  for(const [id,key] of Object.entries(map)){
+    const el = $(id); el.value = model[key] ?? '';
+    el.addEventListener('input', ()=>{ model[key] = el.value; recalc(); save(); });
+  }
+  renderItems(); renderCosts();
+  $('addItem').onclick = ()=>{ model.items.push({task:'',role:'',hours:0,rate:0}); renderItems(); recalc(); save(); };
+  $('addCost').onclick = ()=>{ model.costs.push({name:'',amount:0}); renderCosts(); recalc(); save(); };
+  $('genLink').onclick = genLink;
+  $('copyLink').onclick = ()=> copy($('linkField').value, $('copyLink'));
+  $('dlPdf').onclick = ()=> makePdf(model);
+  $('copyEmail').onclick = copyEmail;
+  $('resetAll').onclick = ()=>{ if(confirm('Verwerfen und neuen Nachtrag starten?')){ model = blank(); localStorage.removeItem('hw_nachtrag_draft'); bindBuilder(); recalc(); } };
+  recalc();
+}
+function renderItems(){
+  const b = $('itemsBody'); b.innerHTML = '';
+  model.items.forEach((it, idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input data-k="task" placeholder="Tätigkeit"></td>
+      <td><input data-k="role" placeholder="Mitarbeiter"></td>
+      <td><input class="num" data-k="hours" type="number" min="0" step="0.25" style="width:90px"></td>
+      <td><input class="num" data-k="rate" type="number" min="0" step="1" style="width:90px"></td>
+      <td class="num" data-cost>—</td>
+      <td><button class="btn sm" data-del>✕</button></td>`;
+    tr.querySelectorAll('input').forEach(inp=>{
+      inp.value = it[inp.dataset.k] ?? '';
+      inp.addEventListener('input', ()=>{ it[inp.dataset.k] = inp.value; recalc(); save(); });
+    });
+    tr.querySelector('[data-del]').onclick = ()=>{ model.items.splice(idx,1); if(!model.items.length) model.items.push({task:'',role:'',hours:0,rate:0}); renderItems(); recalc(); save(); };
+    b.appendChild(tr);
+  });
+}
+function renderCosts(){
+  const b = $('costsBody'); b.innerHTML = '';
+  model.costs.forEach((c, idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input data-k="name" placeholder="z. B. Material, Container, Gerüst"></td>
+      <td><input class="num" data-k="amount" type="number" min="0" step="1" style="width:120px"></td>
+      <td><button class="btn sm" data-del>✕</button></td>`;
+    tr.querySelectorAll('input').forEach(inp=>{
+      inp.value = c[inp.dataset.k] ?? '';
+      inp.addEventListener('input', ()=>{ c[inp.dataset.k] = inp.value; recalc(); save(); });
+    });
+    tr.querySelector('[data-del]').onclick = ()=>{ model.costs.splice(idx,1); renderCosts(); recalc(); save(); };
+    b.appendChild(tr);
+  });
+}
+function recalc(){
+  const t = totals(model), cur = model.currency || '€';
+  $('itemsBody').querySelectorAll('tr').forEach((tr,i)=>{
+    const it = model.items[i]; if(!it) return;
+    tr.querySelector('[data-cost]').textContent = money((Number(it.hours)||0)*(Number(it.rate)||0), cur);
+  });
+  $('s_effort').textContent = money(t.effort, cur);
+  $('s_other').textContent = money(t.other, cur);
+  $('s_total').textContent = money(t.total, cur);
+  $('s_days').textContent = '+' + (Number(model.days)||0) + ' Tage';
+  $('s_fp').textContent = fingerprint(canonical(model));
+}
+function canonical(m){ return JSON.stringify(JSON.parse(JSON.stringify(m))); }
+function save(){ try{ localStorage.setItem('hw_nachtrag_draft', JSON.stringify(model)); }catch(e){} }
+function genLink(){
+  const url = location.origin + location.pathname + '#a=' + b64urlEncode(canonical(model));
+  $('linkField').value = url;
+  $('linkOut').classList.remove('hidden');
+  copy(url, $('genLink'));
+}
+function copyEmail(){
+  const t = totals(model), cur = model.currency || '€';
+  const url = location.origin + location.pathname + '#a=' + b64urlEncode(canonical(model));
+  const body =
+`Hallo ${model.client || '[Name]'},
+
+Nachtrag Nr. ${model.crNo} zum Projekt „${model.project}":
+${model.desc}
+
+Auswirkung: +${money(t.total, cur)} netto und +${Number(model.days)||0} Werktag(e).
+
+Bitte hier prüfen und freigeben:
+${url}
+
+Ein kurzes Freigeben/Ablehnen genügt — nichts zu installieren.
+
+Viele Grüße
+${model.agency}`;
+  copy(body, $('copyEmail'));
+}
+function copy(text, btn){
+  const done = ()=>{ const o = btn.textContent; btn.textContent = '✓ Kopiert'; setTimeout(()=>btn.firstChild ? btn.textContent=o : null, 1400); };
+  if(navigator.clipboard) navigator.clipboard.writeText(text).then(done, ()=>fallbackCopy(text,done));
+  else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(e){} ta.remove(); done&&done(); }
+
+/* ============================================================ APPROVAL */
+function renderApproval(m){
+  const t = totals(m), cur = m.currency || '€';
+  const fp = fingerprint(canonical(m));
+  const rows = m.items.filter(i=>i.task||i.hours||i.rate).map(i=>
+    `<tr><td>${esc(i.task)}</td><td>${esc(i.role)}</td><td class="num">${Number(i.hours)||0}</td><td class="num">${money(Number(i.rate)||0,cur)}</td><td class="num">${money((Number(i.hours)||0)*(Number(i.rate)||0),cur)}</td></tr>`).join('');
+  const costRows = m.costs.filter(c=>c.name||c.amount).map(c=>
+    `<tr><td colspan="4">${esc(c.name)}</td><td class="num">${money(Number(c.amount)||0,cur)}</td></tr>`).join('');
+  $('roView').innerHTML =
+    `<h1 style="margin-top:0">Nachtrag ${esc(m.crNo)}</h1>
+     <div>${m.project?`<span class="pill">Projekt · ${esc(m.project)}</span>`:''}
+       ${m.client?`<span class="pill">Kunde · ${esc(m.client)}</span>`:''}
+       ${m.date?`<span class="pill">Datum · ${esc(m.date)}</span>`:''}
+       ${m.valid?`<span class="pill">Gültig bis · ${esc(m.valid)}</span>`:''}
+       <span class="pill">${esc(m.cls)}</span></div>
+     <h2 style="margin-top:16px">Was wird zusätzlich ausgeführt</h2><p>${esc(m.desc)||'<span class="muted">—</span>'}</p>
+     <h2>Grund</h2><p>${esc(m.reason)||'<span class="muted">—</span>'}</p>
+     <h2>Auswirkung</h2>
+     <table><thead><tr><th>Tätigkeit</th><th>Mitarbeiter</th><th class="num">Stunden</th><th class="num">Satz</th><th class="num">Kosten</th></tr></thead>
+       <tbody>${rows||''}${costRows||''}
+       <tr><td colspan="4" style="text-align:right;font-weight:600">Gesamtauswirkung</td><td class="num" style="font-weight:700;color:var(--primary)">${money(t.total,cur)}</td></tr></tbody></table>
+     <p class="kv" style="margin-top:12px"><b>Termin:</b> +${Number(m.days)||0} Werktag(e)${m.newend?` · neuer Fertigstellungstermin ${esc(m.newend)}`:''}${m.tnotes?` · ${esc(m.tnotes)}`:''}</p>
+     <p class="kv"><b>Erstellt von:</b> ${esc(m.by)||'—'} &nbsp; <span class="fp">Fingerprint ${fp}</span></p>`;
+  document.querySelectorAll('#decideCard [data-d]').forEach(btn=>{
+    btn.onclick = ()=> decide(m, btn.dataset.d, fp, t, cur);
+  });
+}
+function decide(m, decision, fp, t, cur){
+  const name = $('a_name').value.trim();
+  if(!name){ alert('Bitte zuerst Ihren Namen eingeben.'); $('a_name').focus(); return; }
+  const note = $('a_note').value.trim();
+  const ts = new Date();
+  const rec = { decision, name, note, local: ts.toLocaleString('de-DE'), fp, crNo:m.crNo, project:m.project,
+    total: money(t.total,cur), days:Number(m.days)||0 };
+  showConfirmation(m, rec);
+  try{ makeReceipt(m, rec, cur); }catch(e){ console.warn(e); }
+}
+function showConfirmation(m, rec){
+  $('decideCard').classList.add('hidden');
+  const bad = (rec.decision==='Abgelehnt');
+  const subj = encodeURIComponent(`Nachtrag ${rec.crNo} — ${rec.decision} — ${m.project}`);
+  const mailBody = encodeURIComponent(
+`Nachtrag ${rec.crNo} (${m.project})
+Entscheidung: ${rec.decision}
+Freigabeberechtigter: ${rec.name}
+${rec.note?`Notiz: ${rec.note}\n`:''}Gesamtauswirkung: ${rec.total}  |  Termin: +${rec.days} Werktag(e)
+Zeitpunkt: ${rec.local}
+Fingerprint: ${rec.fp}
+
+(Bestätigung erstellt mit dem Nachtrags-Tool.)`);
+  const to = m.agencyEmail || '';
+  const card = $('confCard');
+  card.className = 'card';
+  card.innerHTML =
+    `<div class="conf ${bad?'bad':''}">
+       <h2 style="border-color:${bad?'var(--bad)':'var(--ok)'}">${esc(rec.decision)}</h2>
+       <p class="kv"><b>Freigabeberechtigter:</b> ${esc(rec.name)}</p>
+       ${rec.note?`<p class="kv"><b>Notiz:</b> ${esc(rec.note)}</p>`:''}
+       <p class="kv"><b>Gesamtauswirkung:</b> ${esc(rec.total)} &nbsp; <b>Termin:</b> +${rec.days} Werktag(e)</p>
+       <p class="kv"><b>Zeitpunkt:</b> ${esc(rec.local)}</p>
+       <p class="kv"><span class="fp">Fingerprint ${rec.fp}</span></p>
+       <div class="row-actions" style="margin-top:12px">
+         <a class="btn primary" href="mailto:${to}?subject=${subj}&body=${mailBody}">Bestätigung per E-Mail senden</a>
+         <button class="btn" id="dlReceipt">Quittung herunterladen (PDF)</button>
+       </div>
+       <p class="hint">Eine PDF-Quittung wurde automatisch heruntergeladen. Das Senden der Bestätigungs-Mail vervollständigt den Nachweis.</p>
+     </div>`;
+  card.classList.remove('hidden');
+  card.scrollIntoView({behavior:'smooth'});
+  const cur = m.currency||'€';
+  $('dlReceipt').onclick = ()=> makeReceipt(m, rec, cur);
+}
+
+/* ============================================================ PDF */
+function pdfDoc(){ const J = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+  if(!J){ alert('PDF-Bibliothek konnte nicht geladen werden (offline?). Bitte „Bestätigung per E-Mail senden" nutzen.'); return null; } return new J({unit:'pt',format:'a4'}); }
+function makePdf(m){
+  const doc = pdfDoc(); if(!doc) return;
+  const cur = m.currency||'€', t = totals(m); let y = 56;
+  doc.setFillColor(42,46,53); doc.rect(0,0,595,70,'F');
+  doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text(m.agency||'Nachtrag', 40, 34);
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  doc.text('Nachtrag  '+(m.crNo||''), 40, 52);
+  y = 100; doc.setTextColor(31,35,40);
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text('Nachtrag', 40, y); y+=24;
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  const line = (s)=>{ doc.text(s, 40, y); y+=16; };
+  line(`Projekt: ${m.project||'-'}    Kunde: ${m.client||'-'}`);
+  line(`Erstellt von: ${m.by||'-'}    Datum: ${m.date||'-'}    Gültig bis: ${m.valid||'-'}`);
+  line(`Einordnung: ${m.cls}`); y+=6;
+  doc.setFont('helvetica','bold'); line('Was wird zusätzlich ausgeführt'); doc.setFont('helvetica','normal');
+  doc.splitTextToSize(m.desc||'-',515).forEach(line); y+=4;
+  doc.setFont('helvetica','bold'); line('Grund'); doc.setFont('helvetica','normal');
+  doc.splitTextToSize(m.reason||'-',515).forEach(line); y+=8;
+  doc.setFont('helvetica','bold'); line('Auswirkung'); doc.setFont('helvetica','normal');
+  m.items.filter(i=>i.task||i.hours).forEach(i=> line(`• ${i.task||''} (${i.role||''}) — ${Number(i.hours)||0}h × ${money(Number(i.rate)||0,cur)} = ${money((Number(i.hours)||0)*(Number(i.rate)||0),cur)}`));
+  m.costs.filter(c=>c.name||c.amount).forEach(c=> line(`• ${c.name||''} — ${money(Number(c.amount)||0,cur)}`));
+  y+=4; doc.setFont('helvetica','bold');
+  line(`Gesamtauswirkung: ${money(t.total,cur)}    Termin: +${Number(m.days)||0} Werktag(e)`);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100);
+  doc.text('Fingerprint '+fingerprint(canonical(m)), 40, 800);
+  doc.save(`Nachtrag-${m.crNo||'N-001'}.pdf`);
+}
+function makeReceipt(m, rec, cur){
+  const doc = pdfDoc(); if(!doc) return;
+  let y=56; const bad = rec.decision==='Abgelehnt';
+  doc.setFillColor(bad?180:19, bad?35:122, bad?24:75); doc.rect(0,0,595,70,'F');
+  doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('Freigabe-Quittung', 40, 40);
+  y=110; doc.setTextColor(31,35,40); doc.setFontSize(12);
+  const line = (s,b)=>{ doc.setFont('helvetica',b?'bold':'normal'); doc.text(s,40,y); y+=20; };
+  line(`Entscheidung: ${rec.decision}`, true);
+  line(`Nachtrag: ${rec.crNo}  —  ${m.project||''}`);
+  line(`Freigabeberechtigter: ${rec.name}`);
+  if(rec.note) line(`Notiz: ${rec.note}`);
+  line(`Gesamtauswirkung: ${rec.total}    Termin: +${rec.days} Werktag(e)`);
+  line(`Zeitpunkt: ${rec.local}`);
+  line(`Dokument-Fingerprint: ${rec.fp}`);
+  y+=10; doc.setFontSize(9); doc.setTextColor(100);
+  doc.text('Diese Quittung dokumentiert eine Entscheidung zum oben per Fingerprint identifizierten Nachtrag.', 40, y);
+  doc.save(`Nachtrag-${rec.crNo}-${rec.decision.split(' ')[0]}.pdf`);
+}
+
+/* ============================================================ ROUTER */
+(function init(){
+  const h = location.hash || '';
+  if(h.startsWith('#a=')){
+    document.getElementById('approval').classList.remove('hidden');
+    document.getElementById('modeLabel').textContent = 'Kundenfreigabe';
+    try{ const m = JSON.parse(b64urlDecode(h.slice(3))); renderApproval(m); }
+    catch(e){ document.getElementById('roView').innerHTML = '<p class="muted">Dieser Freigabe-Link ist ungültig oder beschädigt. Bitte fordern Sie einen neuen Link an.</p>'; document.getElementById('decideCard').classList.add('hidden'); }
+    return;
+  }
+  document.getElementById('builder').classList.remove('hidden');
+  document.getElementById('modeLabel').textContent = 'Eingabe';
+  if(h.startsWith('#e=')){ try{ model = Object.assign(blank(), JSON.parse(b64urlDecode(h.slice(3)))); }catch(e){} }
+  else { try{ const d = localStorage.getItem('hw_nachtrag_draft'); if(d) model = Object.assign(blank(), JSON.parse(d)); }catch(e){} }
+  bindBuilder();
+})();
+</script>
+</body>
+</html>
