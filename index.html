@@ -64,6 +64,40 @@
   .conf{border:1px solid var(--ok);background:#F0FAF4;border-radius:10px;padding:16px 18px}
   .conf.bad{border-color:var(--bad);background:#FEF3F2}
 </style>
+<style>
+/* v2 editorial restyle — overrides the base theme (typography-led, hairlines instead of boxes) */
+body{background:#FDFCFA;color:#23272E}
+.band{background:#FDFCFA;border-bottom:3px solid #EAE7E2;padding:24px 20px}
+.chip{display:none}
+#brandName{font-size:15px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:#23272E}
+#brandSub{color:#96908A;font-size:12px;letter-spacing:1px}
+#modeLabel{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#96908A}
+h1{color:#23272E;font-size:24px;letter-spacing:-.4px}
+.card{background:transparent;border:none;border-radius:0;padding:26px 0 8px;margin-bottom:10px;border-top:2px solid #F0EDE8}
+h2{color:#96908A;font-size:12.5px;letter-spacing:2.5px;text-transform:uppercase;font-weight:600;border-left:none;padding-left:0}
+label{color:#96908A}
+input,textarea,select{border:1px solid #E1DDD7;border-radius:6px;background:#fff}
+input:focus,textarea:focus,select:focus{border-color:#E2641E;box-shadow:none}
+th{background:transparent;color:#96908A;text-transform:uppercase;letter-spacing:1.5px;font-size:11.5px;border-bottom:2px solid #EAE7E2;padding:10px 8px}
+td{border-bottom:1px solid #F0EDE8}
+.btn{border:1px solid #DAD5CE;border-radius:6px;background:#fff}
+.btn:hover{background:#F7F5F1}
+.btn.primary{background:#E2641E;border-color:#E2641E}
+.btn.primary:hover{filter:brightness(.95)}
+.btn.ok{background:#137A4B;border-color:#137A4B}
+.summary{display:flex;gap:0}
+.stat{background:transparent;border-radius:0;border-left:2px solid #EAE7E2;padding:4px 0 4px 22px}
+.stat:first-child{border-left:none;padding-left:0}
+.stat .k{font-size:11.5px;text-transform:uppercase;letter-spacing:1.5px;color:#96908A}
+.stat .v{color:#23272E}
+.pill{background:transparent;color:#96908A;padding:0;margin:0 22px 6px 0;font-size:13.5px;border-radius:0}
+.banner{background:transparent;border:none;border-left:4px solid #E2641E;border-radius:0;color:#23272E;padding:6px 0 6px 16px}
+.conf{background:transparent;border:none;border-left:4px solid var(--ok);border-radius:0;padding:8px 0 8px 22px}
+.conf.bad{background:transparent;border:none;border-left:4px solid var(--bad)}
+.hint{color:#96908A}
+.kv b{color:#23272E}
+@media(max-width:640px){.summary{flex-wrap:wrap}.stat{min-width:44%;margin-bottom:10px}}
+</style>
 </head>
 <body>
 <div class="band">
