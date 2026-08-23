@@ -261,7 +261,7 @@ const money = (n, cur) => cur + (Math.round(n*100)/100).toLocaleString('de-DE',{
 const esc = s => (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
 /* Basis-URL fuer erzeugte Freigabe-Links: bei lokaler Datei auf das gehostete Tool ausweichen */
-const HOSTED_TOOL_URL = 'https://mrkhang-source.github.io/nachtrag-tool/';
+const HOSTED_TOOL_URL = 'https://freigabe.scopetocash.com/';
 function toolBase(){
   return (location.protocol === 'file:' || !location.origin || location.origin === 'null')
     ? HOSTED_TOOL_URL
