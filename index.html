@@ -457,54 +457,141 @@ Fingerprint: ${rec.fp}
 }
 
 /* ============================================================ PDF */
-function pdfDoc(){ const J = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
-  if(!J){ alert('PDF-Bibliothek konnte nicht geladen werden (offline?). Bitte „Bestätigung per E-Mail senden" nutzen.'); return null; } return new J({unit:'pt',format:'a4'}); }
+const PC = { acc:[226,100,30], tx:[22,32,43], mu:[128,138,150], rule:[228,232,237], ok:[19,122,75], bad:[180,35,24] };
+const PM = 52, PR = 543;
+
+function pdfDoc(){
+  const J = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+  if(!J){ alert('PDF-Bibliothek konnte nicht geladen werden (offline?). Bitte \u201eBest\u00e4tigung per E-Mail senden\u201c nutzen.'); return null; }
+  return new J({unit:'pt', format:'a4'});
+}
+function pHead(doc, kind, accent){
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(PC.mu[0],PC.mu[1],PC.mu[2]);
+  doc.text('SCOPE TO CASH', PM, 52, {charSpace:2.2});
+  doc.text(kind.toUpperCase(), PR, 52, {align:'right', charSpace:1.6});
+  doc.setDrawColor(PC.rule[0],PC.rule[1],PC.rule[2]); doc.setLineWidth(.8); doc.line(PM,62,PR,62);
+  return 62;
+}
+function pTitle(doc, y, title, accent){
+  doc.setFont('helvetica','bold'); doc.setFontSize(21); doc.setTextColor(PC.tx[0],PC.tx[1],PC.tx[2]);
+  doc.text(title, PM, y + 34);
+  doc.setDrawColor(accent[0],accent[1],accent[2]); doc.setLineWidth(2.6); doc.line(PM, y + 46, PR, y + 46);
+  return y + 72;
+}
+function pLabel(doc, y, text){
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(PC.mu[0],PC.mu[1],PC.mu[2]);
+  doc.text(text.toUpperCase(), PM, y, {charSpace:1.7});
+  return y + 16;
+}
+function pBody(doc, y, text, size){
+  const s = size || 10;
+  doc.setFont('helvetica','normal'); doc.setFontSize(s); doc.setTextColor(PC.tx[0],PC.tx[1],PC.tx[2]);
+  doc.splitTextToSize(text && String(text).trim() ? String(text) : '\u2014', PR - PM).forEach(function(l){
+    doc.text(l, PM, y); y += s + 4;
+  });
+  return y + 8;
+}
+function pMeta(doc, y, line){
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(PC.mu[0],PC.mu[1],PC.mu[2]);
+  doc.text(line, PM, y);
+  return y + 13;
+}
+function pRule(doc, y){
+  doc.setDrawColor(PC.rule[0],PC.rule[1],PC.rule[2]); doc.setLineWidth(.7); doc.line(PM, y, PR, y);
+  return y;
+}
+function pFoot(doc, fp, note){
+  doc.setDrawColor(PC.rule[0],PC.rule[1],PC.rule[2]); doc.setLineWidth(.7); doc.line(PM, 792, PR, 792);
+  doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(PC.mu[0],PC.mu[1],PC.mu[2]);
+  doc.text(note, PM, 805);
+  doc.text('Fingerprint ' + fp, PR, 805, {align:'right'});
+}
+
 function makePdf(m){
   const doc = pdfDoc(); if(!doc) return;
-  const cur = m.currency||'€', t = totals(m); let y = 56;
-  doc.setFillColor(42,46,53); doc.rect(0,0,595,70,'F');
-  doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(16);
-  doc.text(m.agency||'Nachtrag', 40, 34);
-  doc.setFont('helvetica','normal'); doc.setFontSize(11);
-  doc.text('Nachtrag  '+(m.crNo||''), 40, 52);
-  y = 100; doc.setTextColor(31,35,40);
-  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text('Nachtrag', 40, y); y+=24;
-  doc.setFont('helvetica','normal'); doc.setFontSize(11);
-  const line = (s)=>{ doc.text(s, 40, y); y+=16; };
-  line(`Projekt: ${m.project||'-'}    Kunde: ${m.client||'-'}`);
-  line(`Erstellt von: ${m.by||'-'}    Datum: ${m.date||'-'}    Gültig bis: ${m.valid||'-'}`);
-  line(`Einordnung: ${m.cls}`); y+=6;
-  doc.setFont('helvetica','bold'); line('Was wird zusätzlich ausgeführt'); doc.setFont('helvetica','normal');
-  doc.splitTextToSize(m.desc||'-',515).forEach(line); y+=4;
-  doc.setFont('helvetica','bold'); line('Grund'); doc.setFont('helvetica','normal');
-  doc.splitTextToSize(m.reason||'-',515).forEach(line); y+=8;
-  doc.setFont('helvetica','bold'); line('Auswirkung'); doc.setFont('helvetica','normal');
-  m.items.filter(i=>i.task||i.hours).forEach(i=> line(`• ${i.task||''} (${i.role||''}) — ${Number(i.hours)||0}h × ${money(Number(i.rate)||0,cur)} = ${money((Number(i.hours)||0)*(Number(i.rate)||0),cur)}`));
-  m.costs.filter(c=>c.name||c.amount).forEach(c=> line(`• ${c.name||''} — ${money(Number(c.amount)||0,cur)}`));
-  y+=4; doc.setFont('helvetica','bold');
-  line(`Gesamtauswirkung: ${money(t.total,cur)}    Termin: +${Number(m.days)||0} Werktag(e)`);
-  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(100);
-  doc.text('Fingerprint '+fingerprint(canonical(m)), 40, 800);
-  doc.save(`Nachtrag-${m.crNo||'N-001'}.pdf`);
+  const cur = m.currency || '\u20ac', t = totals(m);
+  const C_H = PR - 188, C_R = PR - 96;
+  let y = pTitle(doc, pHead(doc, 'Nachtrag', PC.acc), 'Nachtrag', PC.acc);
+
+  y = pMeta(doc, y, (m.crNo||'\u2014') + '   \u00b7   ' + (m.project||'\u2014') + '   \u00b7   ' + (m.client||'\u2014'));
+  y = pMeta(doc, y, 'Erstellt von ' + (m.by||'\u2014') + '   \u00b7   ' + (m.date||'\u2014') + '   \u00b7   ' + m.cls) + 14;
+
+  y = pLabel(doc, y, 'Was wird zus\u00e4tzlich ausgef\u00fchrt');  y = pBody(doc, y, m.desc);
+  y = pLabel(doc, y, 'Grund');   y = pBody(doc, y, m.reason);
+
+  y = pLabel(doc, y, 'Auswirkung');
+  doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(PC.mu[0],PC.mu[1],PC.mu[2]);
+  doc.text('T\u00c4TIGKEIT', PM, y, {charSpace:1.2});
+  doc.text('STUNDEN', C_H, y, {align:'right', charSpace:1.2});
+  doc.text('SATZ', C_R, y, {align:'right', charSpace:1.2});
+  doc.text('KOSTEN', PR, y, {align:'right', charSpace:1.2});
+  y += 7; pRule(doc, y); y += 17;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(PC.tx[0],PC.tx[1],PC.tx[2]);
+  m.items.filter(function(i){ return i.task || Number(i.hours) || Number(i.rate); }).forEach(function(i){
+    const h = Number(i.hours)||0, r = Number(i.rate)||0;
+    const label = (i.task || '\u2014') + (i.role ? '  (' + i.role + ')' : '');
+    doc.text(doc.splitTextToSize(label, C_H - PM - 16)[0], PM, y);
+    doc.text(String(h), C_H, y, {align:'right'});
+    doc.text(money(r, cur), C_R, y, {align:'right'});
+    doc.text(money(h*r, cur), PR, y, {align:'right'});
+    y += 9; pRule(doc, y); y += 17;
+  });
+  m.costs.filter(function(c){ return c.name || Number(c.amount); }).forEach(function(c){
+    doc.text(doc.splitTextToSize(c.name || '\u2014', C_H - PM - 16)[0], PM, y);
+    doc.text(money(Number(c.amount)||0, cur), PR, y, {align:'right'});
+    y += 9; pRule(doc, y); y += 17;
+  });
+
+  y += 4;
+  doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(PC.tx[0],PC.tx[1],PC.tx[2]);
+  doc.text('Gesamtauswirkung', PM, y);
+  doc.setFontSize(14); doc.setTextColor(PC.acc[0],PC.acc[1],PC.acc[2]);
+  doc.text(money(t.total, cur), PR, y + 1, {align:'right'});
+  y += 26;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(PC.tx[0],PC.tx[1],PC.tx[2]);
+  doc.text('Termin:  +' + (Number(m.days)||0) + ' Werktag(e)' + (m.newend ? '     Neuer Fertigstellungstermin:  ' + m.newend : ''), PM, y);
+  y += 26;
+
+  if (m.valid) { y = pBody(doc, y, 'Dieses Angebot ist g\u00fcltig bis ' + m.valid + '. Danach ggf. Neukalkulation.', 9); }
+
+  pFoot(doc, fingerprint(canonical(m)), 'Keine Freigabe, keine Ausf\u00fchrung \u00b7 freigegebene Nachtr\u00e4ge sind abrechenbar.');
+  doc.save('Nachtrag-' + (m.crNo||'N-001') + '.pdf');
 }
+
 function makeReceipt(m, rec, cur){
   const doc = pdfDoc(); if(!doc) return;
-  let y=56; const bad = rec.decision==='Abgelehnt';
-  doc.setFillColor(bad?180:19, bad?35:122, bad?24:75); doc.rect(0,0,595,70,'F');
-  doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(16);
-  doc.text('Freigabe-Quittung', 40, 40);
-  y=110; doc.setTextColor(31,35,40); doc.setFontSize(12);
-  const line = (s,b)=>{ doc.setFont('helvetica',b?'bold':'normal'); doc.text(s,40,y); y+=20; };
-  line(`Entscheidung: ${rec.decision}`, true);
-  line(`Nachtrag: ${rec.crNo}  —  ${m.project||''}`);
-  line(`Freigabeberechtigter: ${rec.name}`);
-  if(rec.note) line(`Notiz: ${rec.note}`);
-  line(`Gesamtauswirkung: ${rec.total}    Termin: +${rec.days} Werktag(e)`);
-  line(`Zeitpunkt: ${rec.local}`);
-  line(`Dokument-Fingerprint: ${rec.fp}`);
-  y+=10; doc.setFontSize(9); doc.setTextColor(100);
-  doc.text('Diese Quittung dokumentiert eine Entscheidung zum oben per Fingerprint identifizierten Nachtrag.', 40, y);
-  doc.save(`Nachtrag-${rec.crNo}-${rec.decision.split(' ')[0]}.pdf`);
+  const bad = rec.decision === 'Abgelehnt';
+  const accent = bad ? PC.bad : PC.ok;
+  let y = pTitle(doc, pHead(doc, 'Freigabe-Quittung', accent), 'Freigabe-Quittung', accent);
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(17); doc.setTextColor(accent[0],accent[1],accent[2]);
+  doc.text(rec.decision, PM, y + 6);
+  y += 34;
+
+  const rows = [
+    ['Nachtrag', rec.crNo + (m.project ? '  \u00b7  ' + m.project : '')],
+    ['Freigabeberechtigter', rec.name],
+    ['Notiz', rec.note],
+    ['Gesamtauswirkung', rec.total],
+    ['Termin', '+' + rec.days + ' Werktag(e)'],
+    ['Zeitpunkt', rec.local]
+  ];
+  doc.setFontSize(9.5);
+  rows.forEach(function(r){
+    if (!r[1]) return;
+    doc.setFont('helvetica','normal'); doc.setTextColor(PC.mu[0],PC.mu[1],PC.mu[2]);
+    doc.text(r[0], PM, y);
+    doc.setFont('helvetica','bold'); doc.setTextColor(PC.tx[0],PC.tx[1],PC.tx[2]);
+    doc.text(String(r[1]), PM + 150, y);
+    y += 10; pRule(doc, y); y += 16;
+  });
+
+  y += 10;
+  y = pBody(doc, y, 'Diese Quittung dokumentiert eine Entscheidung zum unten per Fingerprint identifizierten Nachtrag. Bitte zur Projektdokumentation aufbewahren.', 9);
+  pFoot(doc, rec.fp, 'Scope to Cash \u00b7 Freigabe-Quittung');
+  doc.save('Nachtrag-' + rec.crNo + '-' + rec.decision.split(' ')[0] + '.pdf');
 }
 
 /* ============================================================ ROUTER */
