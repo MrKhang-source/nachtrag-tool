@@ -260,6 +260,13 @@ function fingerprint(str){
 const money = (n, cur) => cur + (Math.round(n*100)/100).toLocaleString('de-DE',{minimumFractionDigits:0, maximumFractionDigits:2});
 const esc = s => (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
+/* Basis-URL fuer erzeugte Freigabe-Links: bei lokaler Datei auf das gehostete Tool ausweichen */
+const HOSTED_TOOL_URL = 'https://mrkhang-source.github.io/nachtrag-tool/';
+function toolBase(){
+  return (location.protocol === 'file:' || !location.origin || location.origin === 'null')
+    ? HOSTED_TOOL_URL
+    : location.origin + location.pathname;
+}
 /* ---------- model ---------- */
 let model = blank();
 function blank(){
@@ -344,14 +351,14 @@ function recalc(){
 function canonical(m){ return JSON.stringify(JSON.parse(JSON.stringify(m))); }
 function save(){ try{ localStorage.setItem('hw_nachtrag_draft', JSON.stringify(model)); }catch(e){} }
 function genLink(){
-  const url = location.origin + location.pathname + '#a=' + b64urlEncode(canonical(model));
+  const url = toolBase() + '#a=' + b64urlEncode(canonical(model));
   $('linkField').value = url;
   $('linkOut').classList.remove('hidden');
   copy(url, $('genLink'));
 }
 function copyEmail(){
   const t = totals(model), cur = model.currency || '€';
-  const url = location.origin + location.pathname + '#a=' + b64urlEncode(canonical(model));
+  const url = toolBase() + '#a=' + b64urlEncode(canonical(model));
   const body =
 `Hallo ${model.client || '[Name]'},
 
