@@ -267,6 +267,13 @@ function toolBase(){
     ? HOSTED_TOOL_URL
     : location.origin + location.pathname;
 }
+/* <input type="date"> hands us ISO; a German client expects 11.09.2026. Display only --
+   the model keeps the ISO value, so the fingerprint is unaffected. */
+function dmy(s){
+  const p = String(s || '').split('-');
+  return (p.length === 3 && p[0].length === 4) ? p[2] + '.' + p[1] + '.' + p[0] : (s || '');
+}
+
 /* ---------- model ---------- */
 let model = blank();
 function blank(){
@@ -395,8 +402,8 @@ function renderApproval(m){
     `<h1 style="margin-top:0">Nachtrag ${esc(m.crNo)}</h1>
      <div>${m.project?`<span class="pill">Projekt · ${esc(m.project)}</span>`:''}
        ${m.client?`<span class="pill">Kunde · ${esc(m.client)}</span>`:''}
-       ${m.date?`<span class="pill">Datum · ${esc(m.date)}</span>`:''}
-       ${m.valid?`<span class="pill">Gültig bis · ${esc(m.valid)}</span>`:''}
+       ${m.date?`<span class="pill">Datum · ${esc(dmy(m.date))}</span>`:''}
+       ${m.valid?`<span class="pill">Gültig bis · ${esc(dmy(m.valid))}</span>`:''}
        <span class="pill">${esc(m.cls)}</span></div>
      <h2 style="margin-top:16px">Was wird zusätzlich ausgeführt</h2><p>${esc(m.desc)||'<span class="muted">—</span>'}</p>
      <h2>Grund</h2><p>${esc(m.reason)||'<span class="muted">—</span>'}</p>
@@ -404,7 +411,7 @@ function renderApproval(m){
      <table><thead><tr><th>Tätigkeit</th><th>Mitarbeiter</th><th class="num">Stunden</th><th class="num">Satz</th><th class="num">Kosten</th></tr></thead>
        <tbody>${rows||''}${costRows||''}
        <tr><td colspan="4" style="text-align:right;font-weight:600">Gesamtauswirkung</td><td class="num" style="font-weight:700;color:var(--primary)">${money(t.total,cur)}</td></tr></tbody></table>
-     <p class="kv" style="margin-top:12px"><b>Termin:</b> +${Number(m.days)||0} Werktag(e)${m.newend?` · neuer Fertigstellungstermin ${esc(m.newend)}`:''}${m.tnotes?` · ${esc(m.tnotes)}`:''}</p>
+     <p class="kv" style="margin-top:12px"><b>Termin:</b> +${Number(m.days)||0} Werktag(e)${m.newend?` · neuer Fertigstellungstermin ${esc(dmy(m.newend))}`:''}${m.tnotes?` · ${esc(m.tnotes)}`:''}</p>
      <p class="kv"><b>Erstellt von:</b> ${esc(m.by)||'—'} &nbsp; <span class="fp">Fingerprint ${fp}</span></p>`;
   document.querySelectorAll('#decideCard [data-d]').forEach(btn=>{
     btn.onclick = ()=> decide(m, btn.dataset.d, fp, t, cur);
@@ -514,7 +521,7 @@ function makePdf(m){
   let y = pTitle(doc, pHead(doc, 'Nachtrag', PC.acc), 'Nachtrag', PC.acc);
 
   y = pMeta(doc, y, (m.crNo||'\u2014') + '   \u00b7   ' + (m.project||'\u2014') + '   \u00b7   ' + (m.client||'\u2014'));
-  y = pMeta(doc, y, 'Erstellt von ' + (m.by||'\u2014') + '   \u00b7   ' + (m.date||'\u2014') + '   \u00b7   ' + m.cls) + 14;
+  y = pMeta(doc, y, 'Erstellt von ' + (m.by||'\u2014') + '   \u00b7   ' + (dmy(m.date)||'\u2014') + '   \u00b7   ' + m.cls) + 14;
 
   y = pLabel(doc, y, 'Was wird zus\u00e4tzlich ausgef\u00fchrt');  y = pBody(doc, y, m.desc);
   y = pLabel(doc, y, 'Grund');   y = pBody(doc, y, m.reason);
@@ -551,10 +558,10 @@ function makePdf(m){
   y += 26;
 
   doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(PC.tx[0],PC.tx[1],PC.tx[2]);
-  doc.text('Termin:  +' + (Number(m.days)||0) + ' Werktag(e)' + (m.newend ? '     Neuer Fertigstellungstermin:  ' + m.newend : ''), PM, y);
+  doc.text('Termin:  +' + (Number(m.days)||0) + ' Werktag(e)' + (m.newend ? '     Neuer Fertigstellungstermin:  ' + dmy(m.newend) : ''), PM, y);
   y += 26;
 
-  if (m.valid) { y = pBody(doc, y, 'Dieses Angebot ist g\u00fcltig bis ' + m.valid + '. Danach ggf. Neukalkulation.', 9); }
+  if (m.valid) { y = pBody(doc, y, 'Dieses Angebot ist g\u00fcltig bis ' + dmy(m.valid) + '. Danach ggf. Neukalkulation.', 9); }
 
   pFoot(doc, fingerprint(canonical(m)), 'Keine Freigabe, keine Ausf\u00fchrung \u00b7 freigegebene Nachtr\u00e4ge sind abrechenbar.');
   doc.save('Nachtrag-' + (m.crNo||'N-001') + '.pdf');
